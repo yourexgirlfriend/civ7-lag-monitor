@@ -1,13 +1,13 @@
 name: Build macOS App
 
 on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:  # позволяет запускать вручную из GitHub
+  workflow_dispatch:  # только ручной запуск — когда готова новая версия
 
 jobs:
   build-mac:
     runs-on: macos-latest
+    permissions:
+      contents: write  # нужно для создания Release
 
     steps:
       - name: Checkout repository
@@ -17,6 +17,10 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
+      - name: Read version
+        id: version
+        run: echo "version=$(cat version.txt | tr -d '[:space:]')" >> $GITHUB_OUTPUT
 
       - name: Install dependencies
         run: |
@@ -34,11 +38,12 @@ jobs:
       - name: Zip the .app
         run: |
           cd dist
-          zip -r "Civ7_Lag_Monitor_mac.zip" "Civ7 Lag Monitor.app"
+          zip -r "Civ7_Lag_Monitor_mac_v${{ steps.version.outputs.version }}.zip" "Civ7 Lag Monitor.app"
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: Civ7_Lag_Monitor_mac
-          path: dist/Civ7_Lag_Monitor_mac.zip
-          retention-days: 30
+          tag_name: v${{ steps.version.outputs.version }}-mac
+          name: Civ7 Lag Monitor v${{ steps.version.outputs.version }} (macOS)
+          body: macOS build of Civ7 Lag Monitor v${{ steps.version.outputs.version }}
+          files: dist/Civ7_Lag_Monitor_mac_v${{ steps.version.outputs.version }}.zip
