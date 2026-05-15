@@ -1,0 +1,44 @@
+name: Build macOS App
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:  # позволяет запускать вручную из GitHub
+
+jobs:
+  build-mac:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install pyinstaller customtkinter psutil pyperclip pillow
+
+      - name: Build .app
+        run: |
+          python -m PyInstaller \
+            --windowed \
+            --icon=icon.icns \
+            --add-data "icon.icns:." \
+            --name "Civ7 Lag Monitor" \
+            civ7_monitor_mac.py
+
+      - name: Zip the .app
+        run: |
+          cd dist
+          zip -r "Civ7_Lag_Monitor_mac.zip" "Civ7 Lag Monitor.app"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Civ7_Lag_Monitor_mac
+          path: dist/Civ7_Lag_Monitor_mac.zip
+          retention-days: 30
