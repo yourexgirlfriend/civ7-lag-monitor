@@ -932,7 +932,7 @@ def build_report(state, diag_hw, diag_status, diag_warn, log_path):
     out += ["-- GAME DATA " + "-" * 57, ""]
     if state.players:
         out.append(f"  Turn: {state.current_turn}")
-        out.append(f"  {'PLAYER':<18} {'OOS':>6}  {'D/T':>5} {'RECON':>5}  RISK")
+        out.append(f"  {'PLAYER':<18} {'OOS':>6} {'':10} {'D/T':>5} {'RECON':>5} {'DESYNC':>6}  RISK")
         out.append("  " + sep2)
         sorted_p = sorted(state.players.items(),
                           key=lambda x: state.oos_count.get(x[0], 0), reverse=True)
@@ -940,12 +940,14 @@ def build_report(state, diag_hw, diag_status, diag_warn, log_path):
             oos            = state.oos_count.get(iid, 0)
             dup_total, dpt = dupes.get(iid, (0, 0.0))
             recon          = state.reconnects.get(iid, 0)
+            desync         = state.snapshot_fail.get(iid, 0)
             r              = risk_label(oos, dpt, recon)
             label          = player_label(name, iid, state)
-            ft = f" [from t{state.oos_first_turn[iid]}]" \
+            ft = f"[from t{state.oos_first_turn[iid]}]" \
                  if oos > OOS_FROM_TURN_THRESHOLD and iid in state.oos_first_turn else ""
-            dpt_str = f"{dpt:.2f}" if dpt > 0 else "-"
-            out.append(f"  {label:<18} {oos:>6}{ft:<10} {dpt_str:>5} {recon:>5}  {r}")
+            dpt_str    = f"{dpt:.2f}" if dpt > 0 else "-"
+            desync_str = str(desync) if desync else "-"
+            out.append(f"  {label:<18} {oos:>6} {ft:<10} {dpt_str:>5} {recon:>5} {desync_str:>6}  {r}")
         out.append("")
         out.append("  Reconnect history:")
         for iid, name in sorted_p:
