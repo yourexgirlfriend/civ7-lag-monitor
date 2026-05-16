@@ -312,9 +312,23 @@ def read_file(path):
 _net_counters_prev = {}
 _net_counters_time  = [0.0]
 
-APP_VERSION    = "1.3"
-VERSION_URL    = "https://raw.githubusercontent.com/yourexgirlfriend/civ7-lag-monitor/main/version.txt"
-DRAFTER_URL    = "https://drafter.games"
+APP_VERSION      = "1.3"
+VERSION_URL      = "https://raw.githubusercontent.com/yourexgirlfriend/civ7-lag-monitor/main/version.txt"
+DRAFTER_URL      = "https://drafter.games"
+DISCLAIMER_FILE = os.path.join(os.path.expanduser("~"), "Library", "Application Support", "Civ7LagMonitor", "disclaimer_accepted")
+
+def _disclaimer_accepted():
+    """Check if disclaimer was accepted."""
+    return os.path.exists(DISCLAIMER_FILE)
+
+def _disclaimer_set_accepted():
+    """Mark disclaimer as accepted."""
+    try:
+        os.makedirs(os.path.dirname(DISCLAIMER_FILE), exist_ok=True)
+        with open(DISCLAIMER_FILE, "w") as f:
+            f.write("1")
+    except Exception:
+        pass
 
 def open_drafter_url(event=None):
     """Open drafter.games in the default browser."""
@@ -1233,8 +1247,73 @@ class App(ctk.CTk):
         self._build_ui()
         self._init_data()
         self.after(500, self._schedule_refresh)
-        # Poll for Ctrl+C via Windows API (works with any keyboard layout)
         self._start_copy_poll()
+        # Show disclaimer on first run
+        if not _disclaimer_accepted():
+            self.after(300, self._show_disclaimer)
+
+    # ── First-run disclaimer ─────────────────────────────────────────────────
+
+    def _show_disclaimer(self):
+        import tkinter as tk
+        popup = tk.Toplevel(self)
+        popup.title("Welcome to Civ7 Lag Monitor")
+        popup.configure(bg=BG_MAIN)
+        popup.resizable(True, True)
+        popup.minsize(660, 620)
+        popup.grab_set()
+
+        # Centre on parent
+        self.update_idletasks()
+        pw, ph = 700, 660
+        x = self.winfo_x() + (self.winfo_width()  - pw) // 2
+        y = self.winfo_y() + (self.winfo_height() - ph) // 2
+        popup.geometry(f"{pw}x{ph}+{x}+{y}")
+
+        tk.Frame(popup, bg=GOLD, height=3).pack(fill="x")
+
+        body = tk.Frame(popup, bg=BG_MAIN)
+        body.pack(fill="both", expand=True, padx=36, pady=24)
+
+        tk.Label(body, text="Civ7 Lag Monitor",
+            font=("Georgia", 28, "bold"), fg=GOLD, bg=BG_MAIN).pack(anchor="w", pady=(0, 18))
+
+        sections = [
+            ("Privacy",
+             "This application reads Civilization VII log files stored locally "
+             "on your computer. No data is collected, transmitted, or shared "
+             "with any third party. All processing happens entirely on your device."),
+            ("Third-party disclaimer",
+             "This is an unofficial fan-made tool and is not affiliated with, "
+             "endorsed by, or associated with Firaxis Games or 2K Games in any "
+             "way. Civilization VII is a trademark of 2K Games."),
+            ("Liability",
+             "This tool is provided free of charge and developed in good faith "
+             "to help the Civ7 multiplayer community. While I do my best to keep "
+             "it accurate and stable, I can't guarantee it will work perfectly "
+             "in every situation. Use it at your own discretion."),
+        ]
+
+        for title, text in sections:
+            tk.Label(body, text=title,
+                font=("Georgia", 18, "bold"), fg=GOLD_DIM, bg=BG_MAIN).pack(anchor="w", pady=(12, 2))
+            tk.Label(body, text=text,
+                font=("Book Antiqua", 16), fg=TEXT_MAIN, bg=BG_MAIN,
+                wraplength=620, justify="left").pack(anchor="w")
+
+        tk.Frame(popup, bg=GOLD_DIM, height=1).pack(fill="x", pady=(12, 0))
+
+        btn_frame = tk.Frame(popup, bg="#0e0c08")
+        btn_frame.pack(fill="x")
+
+        def _accept():
+            _disclaimer_set_accepted()
+            popup.destroy()
+
+        ctk.CTkButton(btn_frame, text="I understand", width=160, height=40,
+            fg_color=GOLD, hover_color=GOLD_LIGHT, text_color="#1a1710",
+            font=BA(18, bold=True),
+            command=_accept).pack(side="right", padx=14, pady=10)
 
     # ── Build UI ──────────────────────────────────────────────────────────────
 
